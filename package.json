@@ -1,0 +1,29 @@
+{
+  "name": "@rivium/flags-nextjs",
+  "version": "0.1.0",
+  "description": "Rivium Feature Flags SDK for Next.js - Server and client-side feature flag management",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["feature-flags", "rivium", "nextjs", "react"],
+  "author": "Rivium",
+  "license": "MIT",
+  "homepage": "https://rivium.co",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rivium-co/rivium-flags-nextjs-sdk"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "react": "^18.0.0"
+  }
+}

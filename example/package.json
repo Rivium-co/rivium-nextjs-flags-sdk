@@ -1,0 +1,21 @@
+{
+  "name": "rivium-flags-nextjs-example",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3099",
+    "build": "next build",
+    "start": "next start -p 3099"
+  },
+  "dependencies": {
+    "@rivium/flags-nextjs": "file:..",
+    "next": "^16.1.6",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
