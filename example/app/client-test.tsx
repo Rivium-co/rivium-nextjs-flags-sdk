@@ -1,200 +1,65 @@
 'use client';
 
-import { useRiviumFlags, RiviumFlagsProvider, RiviumFlagsClient } from '@rivium/flags-nextjs';
+import { RiviumFlagsProvider, useRiviumFlags } from '@rivium/flags-nextjs/client';
 import { useState } from 'react';
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Client Component — uses apiKey only (no serverSecret)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Public key only (NEXT_PUBLIC_…). Never put the server secret in client code.
+const API_KEY = process.env.NEXT_PUBLIC_RIVIUM_API_KEY || 'YOUR_API_KEY';
+const ENVIRONMENTS = ['default', 'development', 'staging', 'production'];
 
-const API_KEY = 'YOUR_API_KEY'; // Use NEXT_PUBLIC_ prefix in real usage
-
-export function ClientTestWrapper() {
-  const [selectedEnv, setSelectedEnv] = useState('none');
-
+export function ClientDemo() {
+  const [env, setEnv] = useState('default');
   return (
-    <RiviumFlagsProvider config={{ apiKey: API_KEY, environment: selectedEnv === 'none' ? undefined : selectedEnv, debug: true }} key={selectedEnv}>
-      <ClientTest selectedEnv={selectedEnv} setSelectedEnv={setSelectedEnv} />
+    <RiviumFlagsProvider
+      key={env}
+      config={{ apiKey: API_KEY, environment: env === 'default' ? undefined : env, debug: true }}
+    >
+      <ClientPanel env={env} setEnv={setEnv} />
     </RiviumFlagsProvider>
   );
 }
 
-function ClientTest({ selectedEnv, setSelectedEnv }: { selectedEnv: string; setSelectedEnv: (env: string) => void }) {
-  const { isEnabled, getValue, evaluate, getAll, setUserId, getUserId, setUserAttributes, refresh, isLoading, isReady } = useRiviumFlags();
-  const [userId, setUserIdState] = useState('test-user-1');
-  const [log, setLog] = useState<string[]>([]);
-
-  const addLog = (msg: string) => setLog((prev) => [...prev, msg]);
-
-  if (isLoading) {
-    return <div style={{ padding: 20 }}>Loading flags...</div>;
-  }
-
-  const runTests = async () => {
-    setLog([]);
-
-    // Set user
-    setUserId(userId);
-    setUserAttributes({ plan: 'pro', country: 'US' });
-    addLog(`Set userId: ${userId}, attributes: {plan: "pro", country: "US"}`);
-
-    // All flags
-    const all = getAll();
-    addLog(`Fetched ${all.length} flags: ${all.map((f) => f.key).join(', ')}`);
-
-    // Boolean flag
-    const dm = isEnabled('dark_mode');
-    addLog(`dark_mode: isEnabled = ${dm}`);
-
-    // Multivariate (getValue)
-    const cv = getValue('checkout_flow');
-    addLog(`checkout_flow: getValue = ${cv}`);
-
-    // Evaluate (full result)
-    const evalResult = evaluate('checkout_flow');
-    addLog(`checkout_flow: evaluate = enabled=${evalResult.enabled}, value=${evalResult.value}, variant=${evalResult.variant}`);
-
-    // Targeting
-    const pm = isEnabled('premium_banner');
-    addLog(`premium_banner (pro/US): ${pm}`);
-
-    // Default value
-    const missing = getValue('nonexistent_flag', 'fallback');
-    addLog(`nonexistent_flag: getValue = "${missing}" (default: "fallback")`);
-
-    // getUserId
-    const currentId = getUserId();
-    addLog(`getUserId = "${currentId}" (expected: "${userId}")`);
-
-    // Refresh
-    await refresh();
-    addLog(`Refreshed flags. Total: ${getAll().length}`);
-
-    // Environment overrides
-    // Setup in dashboard:
-    //   1. Create a flag (e.g. "maintenance_mode") → globally disabled
-    //   2. Create environments: development, staging, production
-    //   3. Override: development → enabled, staging → enabled, production → keep default
-    const allCurrent = getAll();
-    const testFlagKey = allCurrent.length > 0 ? allCurrent[0].key : 'maintenance_mode';
-    const envLines: string[] = [];
-
-    for (const env of ['none', 'development', 'staging', 'production']) {
-      try {
-        const envClient = new RiviumFlagsClient({
-          apiKey: API_KEY,
-          environment: env === 'none' ? undefined : env,
-          debug: true,
-        });
-        await envClient.init();
-        envClient.setUserId(userId);
-        const flagEnabled = envClient.isEnabled(testFlagKey);
-        const flagValue = envClient.getValue(testFlagKey);
-        envLines.push(`${env}: enabled=${flagEnabled}, value=${flagValue}, flags=${envClient.getAll().length}`);
-      } catch (e) {
-        envLines.push(`${env}: error=${e}`);
-      }
-    }
-    addLog(`Environment overrides (${testFlagKey}):\n${envLines.join('\n')}`);
-
-    // Reset & Dispose (standalone client)
-    const standaloneClient = new RiviumFlagsClient({ apiKey: API_KEY, debug: true });
-    await standaloneClient.init();
-    const beforeReset = standaloneClient.getAll().length;
-    standaloneClient.dispose();
-    standaloneClient.reset();
-    const afterReset = standaloneClient.getAll().length;
-    addLog(`Reset & Dispose: before=${beforeReset} flags, dispose() called, after=${afterReset} flags`);
+function ClientPanel({ env, setEnv }: { env: string; setEnv: (e: string) => void }) {
+  const { client, isReady, getAll, getDetail, identify, reset, resetAnonymousId, refresh } = useRiviumFlags();
+  const [busy, setBusy] = useState(false);
+  const run = (fn: () => Promise<void>) => async () => {
+    setBusy(true);
+    await fn();
+    setBusy(false);
   };
 
+  const all = getAll();
+  const missing = getDetail('nonexistent_flag', 'fallback');
+
   return (
-    <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ margin: '0 0 16px', color: '#333' }}>Client Component Tests (useRiviumFlags hook)</h2>
+    <section style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+      <h2 style={{ margin: '0 0 12px' }}>Client Component (useRiviumFlags)</h2>
+      <p style={{ margin: '0 0 12px', fontSize: 13 }}>
+        {isReady ? 'Ready' : 'Loading…'} · user: {client.getUserId() ?? '(signed out)'} · anonymous id: {client.getAnonymousId()}
+      </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-        <label style={{ fontWeight: 600 }}>User:</label>
-        {['test-user-1', 'test-user-2', 'test-user-3'].map((uid) => (
-          <button
-            key={uid}
-            onClick={() => { setUserIdState(uid); setUserId(uid); }}
-            style={{
-              padding: '4px 12px',
-              border: userId === uid ? '2px solid #d97706' : '1px solid #ddd',
-              borderRadius: 6,
-              background: userId === uid ? '#fef3c7' : 'white',
-              cursor: 'pointer',
-              fontSize: 13,
-            }}
-          >
-            {uid}
-          </button>
-        ))}
-        <button
-          onClick={runTests}
-          style={{
-            marginLeft: 'auto',
-            padding: '6px 16px',
-            background: '#d97706',
-            color: 'white',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontWeight: 600,
-          }}
-        >
-          Run Tests
-        </button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+        <button disabled={busy} onClick={run(() => identify('user-1', { plan: 'pro', country: 'AM' }))}>identify user-1 (pro)</button>
+        <button disabled={busy} onClick={run(() => identify('user-2', { plan: 'free', country: 'US' }))}>identify user-2 (free)</button>
+        <button disabled={busy} onClick={run(reset)}>reset (sign out)</button>
+        <button disabled={busy} onClick={run(resetAnonymousId)}>new anonymous id</button>
+        <button disabled={busy} onClick={run(refresh)}>refresh</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
-        <label style={{ fontWeight: 600 }}>Env:</label>
-        {['none', 'development', 'staging', 'production'].map((env) => (
-          <button
-            key={env}
-            onClick={() => setSelectedEnv(env)}
-            style={{
-              padding: '4px 12px',
-              border: selectedEnv === env ? '2px solid #3b82f6' : '1px solid #ddd',
-              borderRadius: 6,
-              background: selectedEnv === env ? '#dbeafe' : 'white',
-              cursor: 'pointer',
-              fontSize: 13,
-            }}
-          >
-            {env === 'none' ? 'Global' : env}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        {ENVIRONMENTS.map((e) => (
+          <button key={e} onClick={() => setEnv(e)} style={{ fontWeight: env === e ? 700 : 400 }}>
+            {e}
           </button>
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <span style={{
-          padding: '4px 10px',
-          borderRadius: 4,
-          fontSize: 12,
-          background: isReady ? '#dcfce7' : '#fef9c3',
-          color: isReady ? '#166534' : '#854d0e',
-        }}>
-          {isReady ? '● Ready' : '○ Initializing'}
-        </span>
-        <span style={{ padding: '4px 10px', borderRadius: 4, fontSize: 12, background: '#e0f2fe', color: '#0c4a6e' }}>
-          {getAll().length} flags loaded
-        </span>
-      </div>
-
-      {log.length > 0 && (
-        <pre style={{
-          background: '#1e293b',
-          color: '#e2e8f0',
-          padding: 16,
-          borderRadius: 8,
-          fontSize: 13,
-          lineHeight: 1.6,
-          overflow: 'auto',
-          maxHeight: 400,
-        }}>
-          {log.map((l, i) => `${i + 1}. ${l}`).join('\n')}
-        </pre>
-      )}
-    </div>
+      <pre style={{ background: '#1e293b', color: '#e2e8f0', padding: 16, borderRadius: 8, fontSize: 13, overflow: 'auto' }}>
+        {Object.values(all)
+          .map((r) => `${r.key}: enabled=${r.enabled} value=${JSON.stringify(r.value)} variant=${r.variant} reason=${r.reason}`)
+          .join('\n') || '(no results yet)'}
+        {`\nnonexistent_flag → value=${missing.value} reason=${missing.reason}`}
+      </pre>
+    </section>
   );
 }

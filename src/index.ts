@@ -1,4 +1,6 @@
-export { RiviumFlags } from './rivium-flags';
-export { RiviumFlagsClient } from './rivium-flags-client';
-export { useRiviumFlags, RiviumFlagsProvider } from './use-rivium-flags';
-export type { RiviumFlagsConfig, RiviumFlagsClientConfig, FeatureFlag, FlagVariant, FlagEvalResult, FeatureFlagCallback } from './types';
+/**
+ * `@rivium/flags-nextjs` — the browser-safe client entry (same as
+ * `@rivium/flags-nextjs/client`). The server SDK lives in
+ * `@rivium/flags-nextjs/server` so it can never end up in a client bundle.
+ */
+export * from './client';

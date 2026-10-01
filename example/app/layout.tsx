@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Rivium Flags — Next.js SDK Test',
+  title: 'Rivium Flags — Next.js SDK example',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,15 +1,55 @@
 {
   "name": "@rivium/flags-nextjs",
-  "version": "0.1.0",
-  "description": "Rivium Feature Flags SDK for Next.js - Server and client-side feature flag management",
+  "version": "0.2.0",
+  "description": "Rivium Flags SDK for Next.js - server entry with local evaluation, browser-safe client entry with React hooks",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
-  "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    },
+    "./package.json": "./package.json"
   },
-  "keywords": ["feature-flags", "rivium", "nextjs", "react"],
+  "typesVersions": {
+    "*": {
+      "client": [
+        "dist/client.d.ts"
+      ],
+      "server": [
+        "dist/server.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "test": "rm -rf .test-build && tsc -p tsconfig.test.json && node --test \".test-build/test/*.test.js\"",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "feature-flags",
+    "rivium",
+    "nextjs",
+    "react"
+  ],
   "author": "Rivium",
   "license": "MIT",
   "homepage": "https://rivium.co",
@@ -19,6 +59,11 @@
   },
   "peerDependencies": {
     "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "typescript": "^5.0.0",
